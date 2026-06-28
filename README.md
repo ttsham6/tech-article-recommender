@@ -1,1 +1,1 @@
-# tech-article-collector
+# tech-article-recommender
