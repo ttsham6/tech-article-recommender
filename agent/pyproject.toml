@@ -1,5 +1,5 @@
 [project]
-name = "tech-article-recommender-backend"
+name = "tech-article-recommender-agent"
 version = "0.1.0"
 description = "Managed AgentCore harness client for tech article recommendations"
 requires-python = ">=3.11"
