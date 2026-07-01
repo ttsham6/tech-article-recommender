@@ -17,7 +17,3 @@ def main() -> None:
     service = RecommendationService()
     response = service.recommend(payload)
     print(json.dumps(response.model_dump(mode="json"), ensure_ascii=False, indent=2))
-
-
-if __name__ == "__main__":
-    main()
