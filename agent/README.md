@@ -43,6 +43,3 @@ aws bedrock-agentcore invoke-agent-runtime \
   --payload "$PAYLOAD_B64" \
   ./response.json
 ```
-
-arn:aws:bedrock-agentcore:ap-northeast-1:833065436118:runtime/TechArticleRecommender-JjwxOc5vUg
-arn:aws:bedrock-agentcore:ap-northeast-1:833065436118:runtime/TechArticleRecommender-JjwxOc5vUg/runtime-endpoint/tech_article_recommender_endpoint
