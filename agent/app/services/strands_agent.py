@@ -13,7 +13,8 @@ class RecommendationTools:
 
     @tool
     def retrieve_kb(self, query: str, number_of_results: int = 8) -> dict:
-        """Retrieve relevant context from the Bedrock knowledge base.
+        """
+        Retrieve relevant context from the Bedrock knowledge base.
 
         Args:
             query: Search query for the knowledge base.
@@ -47,8 +48,11 @@ class StrandsRecommendationAgent:
                 f"User preference: {preference}"
             )
         )
+
         if result.structured_output is None:
             raise ValueError("Strands agent did not return structured output")
+
         if isinstance(result.structured_output, RecommendationItemsPayload):
             return result.structured_output
+
         return RecommendationItemsPayload.model_validate(result.structured_output)
