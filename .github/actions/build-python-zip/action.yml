@@ -1,0 +1,62 @@
+name: Build Python Zip
+description: "Setup Python and uv, build deployment zip, and upload artifact"
+
+inputs:
+  work-dir:
+    description: "Working directory for the Python project"
+    required: true
+  zip-name:
+    description: "Output zip file name"
+    required: true
+  artifact-name:
+    description: "Uploaded GitHub artifact name"
+    required: true
+  python-version:
+    description: "Python version"
+    required: false
+    default: "3.13"
+  extra-copy-paths:
+    description: "Whitespace-separated extra paths to copy into build/package"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Build zip artifact
+      shell: bash
+      working-directory: ${{ inputs.work-dir }}
+      run: |
+        rm -rf build/package build/dist "build/${{ inputs.zip-name }}"
+        mkdir -p build/package
+        uv build --wheel --out-dir build/dist
+        uv pip install \
+          --python-platform aarch64-manylinux2014 \
+          --python-version "${{ inputs.python-version }}" \
+          --target build/package \
+          --only-binary=:all: \
+          build/dist/*.whl
+
+        if [ -n "${{ inputs.extra-copy-paths }}" ]; then
+          cp -R ${{ inputs.extra-copy-paths }} build/package/
+        fi
+
+        (
+          cd build/package
+          zip -r "../${{ inputs.zip-name }}" .
+        )
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.work-dir }}/build/${{ inputs.zip-name }}
+        if-no-files-found: error

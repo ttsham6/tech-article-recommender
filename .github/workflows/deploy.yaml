@@ -1,0 +1,75 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/actions/build-python-zip/**"
+      - ".github/actions/setup-aws/**"
+      - ".github/workflows/deploy.yaml"
+      - "agent/**"
+      - "api/**"
+      - "infra/**"
+  workflow_dispatch:
+    inputs:
+      stack-name:
+        description: "Pulumi stack name"
+        required: false
+        default: "ttsham6/tech-article-recommender-infra/prod"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  agent-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build AI Agent project
+        uses: ./.github/actions/build-python-zip
+        with:
+          work-dir: ./agent
+          zip-name: strands-runtime.zip
+          artifact-name: strands-runtime
+          extra-copy-paths: main.py
+
+  api-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build API project
+        uses: ./.github/actions/build-python-zip
+        with:
+          work-dir: ./api
+          zip-name: api-lambda.zip
+          artifact-name: api-lambda
+
+  pulumi-aws-up:
+    needs: [agent-build, api-build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup and run Pulumi (AWS)
+        uses: ./.github/actions/setup-aws
+        with:
+          command: up
+          stack-name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs['stack-name'] || 'ttsham6/tech-article-recommender-infra/prod' }}
+          work-dir: "./infra"
+          download-artifacts: "true"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
