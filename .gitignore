@@ -14,5 +14,6 @@ node_modules/
 .coverage
 build/
 dist/
+infra/dist/*.zip
 local/
 data/
