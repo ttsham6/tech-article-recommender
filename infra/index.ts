@@ -4,6 +4,9 @@ import { DynamoDb } from "./components/dynamodb";
 import { KnowledgeBase } from "./components/knowledge-base";
 import { S3 } from "./components/s3";
 
+const AGENT_ARTIFACT_PATH = "dist/strands-runtime.zip";
+const API_ARTIFACT_PATH = "dist/api-lambda.zip";
+
 const s3 = new S3("s3");
 const dynamoDb = new DynamoDb("dynamodb");
 
@@ -17,6 +20,7 @@ const knowledgeBase = new KnowledgeBase("knowledge-base",
 const runtime = new AgentRuntime(
     "runtime",
     {
+        artifactPath: AGENT_ARTIFACT_PATH,
         knowledgeBaseArn: knowledgeBase.knowledgeBase.arn,
         knowledgeBaseId: knowledgeBase.knowledgeBase.id,
         sourceBucketName: s3.artifactBucket.bucket,
@@ -25,7 +29,7 @@ const runtime = new AgentRuntime(
 const apiLambda = new ApiLambda(
     "api",
     {
-        artifactBucketName: s3.artifactBucket.bucket,
+        artifactPath: API_ARTIFACT_PATH,
         agentRuntimeArn: runtime.agentRuntime.agentRuntimeArn,
         agentRuntimeEndpointArn: runtime.endpoint.agentRuntimeEndpointArn,
         agentRuntimeQualifier: "tech_article_recommender_endpoint",

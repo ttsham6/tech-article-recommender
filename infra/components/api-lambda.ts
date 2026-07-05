@@ -5,7 +5,7 @@ const FUNCTION_NAME = "tech-article-recommender-api";
 const ARTIFACT_KEY = "api-lambda.zip";
 
 export interface ApiLambdaArgs {
-    artifactBucketName: pulumi.Input<string>;
+    artifactPath: string;
     agentRuntimeArn: pulumi.Input<string>;
     agentRuntimeEndpointArn: pulumi.Input<string>;
     agentRuntimeQualifier: pulumi.Input<string>;
@@ -118,8 +118,7 @@ export class ApiLambda extends pulumi.ComponentResource {
             architectures: ["arm64"],
             timeout: 180,
             memorySize: 512,
-            s3Bucket: args.artifactBucketName,
-            s3Key: ARTIFACT_KEY,
+            code: new pulumi.asset.FileArchive(args.artifactPath),
             environment: {
                 variables: {
                     AGENT_RUNTIME_ARN: args.agentRuntimeArn,

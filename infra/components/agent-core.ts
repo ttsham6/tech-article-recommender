@@ -7,6 +7,7 @@ const MODEL_ID = "openai.gpt-oss-20b-1:0";
 const ENDPOINT_NAME = "tech_article_recommender_endpoint";
 
 export interface AgentRuntimeArgs {
+    artifactPath: string;
     knowledgeBaseArn: pulumi.Input<string>;
     knowledgeBaseId: pulumi.Input<string>;
     sourceBucketName: pulumi.Input<string>;
@@ -181,6 +182,13 @@ export class AgentRuntime extends pulumi.ComponentResource {
             ]
         }, { parent: this });
 
+        const artifact = new aws.s3.BucketObject(`${name}-artifact`, {
+            bucket: args.sourceBucketName,
+            key: ARTIFACT_KEY,
+            source: new pulumi.asset.FileAsset(args.artifactPath),
+            contentType: "application/zip",
+        }, { parent: this });
+
         // Agent runtime
         this.agentRuntime = new aws.bedrock.AgentcoreAgentRuntime(`${name}-resource`, {
             agentRuntimeName: RUNTIME_NAME,
@@ -193,7 +201,7 @@ export class AgentRuntime extends pulumi.ComponentResource {
                     code: {
                         s3: {
                             bucket: args.sourceBucketName,
-                            prefix: ARTIFACT_KEY,
+                            prefix: artifact.key,
                         },
                     },
                 },
@@ -206,7 +214,7 @@ export class AgentRuntime extends pulumi.ComponentResource {
             networkConfiguration: {
                 networkMode: "PUBLIC",
             },
-        }, { parent: this });
+        }, { parent: this, dependsOn: [artifact] });
 
         // Endpoint
         this.endpoint = new aws.bedrock.AgentcoreAgentRuntimeEndpoint(`${name}-endpoint`, {

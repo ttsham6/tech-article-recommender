@@ -1,0 +1,73 @@
+name: Setup AWS
+description: "Setup Node.js environment, AWS credentials and run Pulumi"
+
+inputs:
+  command:
+    description: "Pulumi command to run (preview or up)"
+    required: true
+  stack-name:
+    description: "Pulumi stack name"
+    required: true
+    default: "ttsham6/tech-article-recommender-infra/prod"
+  work-dir:
+    description: "Working directory for Pulumi"
+    required: false
+    default: "./infra"
+  download-artifacts:
+    description: "Whether to download build zip artifacts"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+        cache: yarn
+        cache-dependency-path: ${{ inputs.work-dir }}/yarn.lock
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v6
+      with:
+        aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+        aws-region: ${{ env.AWS_REGION }}
+        aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Enable Corepack
+      shell: bash
+      run: corepack enable
+
+    - name: Create dist directory
+      if: ${{ inputs.download-artifacts == 'true' }}
+      shell: bash
+      run: mkdir -p ${{ inputs.work-dir }}/dist
+
+    - name: Download AI Agent artifact
+      if: ${{ inputs.download-artifacts == 'true' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: strands-runtime
+        path: ${{ inputs.work-dir }}/dist
+
+    - name: Download API Artifact
+      if: ${{ inputs.download-artifacts == 'true' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: api-lambda
+        path: ${{ inputs.work-dir }}/dist
+
+    - name: Yarn install
+      shell: bash
+      working-directory: ${{ inputs.work-dir }}
+      run: yarn install --immutable
+
+    - name: Run Pulumi command
+      uses: pulumi/actions@v3
+      with:
+        command: ${{ inputs.command }}
+        stack-name: ${{ inputs.stack-name }}
+        work-dir: ${{ inputs.work-dir }}
+      env:
+        PULUMI_ACCESS_TOKEN: ${{ env.PULUMI_ACCESS_TOKEN }}

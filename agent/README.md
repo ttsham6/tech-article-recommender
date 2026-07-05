@@ -12,13 +12,14 @@ uv sync
 ```sh
 rm -rf build/package build/strands-runtime.zip
 mkdir -p build/package
+uv build --wheel --out-dir build/dist
 uv pip install \
   --python-platform aarch64-manylinux2014 \
   --python-version 3.13 \
   --target build/package \
   --only-binary=:all: \
-  -r pyproject.toml
-cp -R app main.py build/package/
+  build/dist/*.whl
+cp main.py build/package/
 cd build/package
 zip -r ../strands-runtime.zip .
 ```
