@@ -31,6 +31,17 @@ pulumi preview
 pulumi up
 ```
 
+## Artifact build
+
+`pulumi preview` / `pulumi up` 前に zip artifact を `infra/dist/` へ配置必要。
+
+```bash
+./scripts/build_artifacts.sh
+cd infra
+pulumi preview
+pulumi up
+```
+
 ## Config
 
 - `harnessName` default `TechArticleRecommender`
@@ -46,6 +57,7 @@ pulumi up
 
 ## Notes
 
+- `infra/dist/strands-runtime.zip` と `infra/dist/api-lambda.zip` を Pulumi が参照
 - Harness 方針。自前FastAPI不要
 - 生成agent loopは AgentCore managed harness 側
 - backend 側は `InvokeHarness` クライアント専用

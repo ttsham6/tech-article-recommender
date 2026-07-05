@@ -34,21 +34,21 @@ uv run pytest
 cd api
 rm -rf build/package build/api-lambda.zip
 mkdir -p build/package
+uv build --wheel --out-dir build/dist
 uv pip install \
   --python-platform aarch64-manylinux2014 \
   --python-version 3.13 \
   --target build/package \
   --only-binary=:all: \
-  -r pyproject.toml
-cp -R app build/package/
+  build/dist/*.whl
 cd build/package
 zip -r ../api-lambda.zip .
 ```
 
 ## Lambda upload
 
-artifact bucket へ `api-lambda.zip` を配置。
+`infra/dist/api-lambda.zip` へ配置。
 
 ```sh
-aws s3 cp build/api-lambda.zip s3://<artifact-bucket>/api-lambda.zip --region ap-northeast-1
+cp build/api-lambda.zip ../infra/dist/api-lambda.zip
 ```
