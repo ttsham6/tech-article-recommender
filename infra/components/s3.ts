@@ -35,6 +35,9 @@ export class S3 extends pulumi.ComponentResource {
       dataType: "float32",
       dimension: DEFAULT_EMBEDDING_DIMENSION,
       distanceMetric: "cosine",
+      metadataConfiguration: {
+        nonFilterableMetadataKeys: ["AMAZON_BEDROCK_METADATA", "AMAZON_BEDROCK_TEXT"]
+      }
     }, { parent: this });
 
     this.artifactBucket = new aws.s3.Bucket(`${name}-artifact-bucket`, {
