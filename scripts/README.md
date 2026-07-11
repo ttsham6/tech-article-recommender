@@ -11,6 +11,8 @@
 例:
 
 ```bash
+python3 -m pip install -r requirements.txt
+
 python3 scripts/rss_to_kb_documents.py \
   data/awsfeed_20260705.xml \
   data/aws-news-blog \
