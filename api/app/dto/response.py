@@ -9,4 +9,3 @@ class RecommendationItem(BaseModel):
 
 class RecommendationResponse(BaseModel):
     items: list[RecommendationItem]
-    knowledge_base_id: str
