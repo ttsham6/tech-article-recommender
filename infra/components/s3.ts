@@ -1,7 +1,8 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
-const DEFAULT_EMBEDDING_DIMENSION = 1024;
+const config = new pulumi.Config();
+const DEFAULT_EMBEDDING_DIMENSION = config.getNumber("embeddingDimension") ?? 1024;
 
 export class S3 extends pulumi.ComponentResource {
   // for knowledge base

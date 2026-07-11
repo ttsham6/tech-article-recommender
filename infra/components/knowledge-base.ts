@@ -1,9 +1,11 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
-const EMBEDDING_MODEL_ID = "cohere.embed-multilingual-v3";
-const CHUNK_MAX_TOKENS = 512;
-const CHUNK_OVERLAP_PERCENTAGE = 20;
+const config = new pulumi.Config();
+const EMBEDDING_MODEL_ID = config.get("embeddingModelId") ?? "amazon.titan-embed-text-v2:0";
+const CHUNK_MAX_TOKENS = config.getNumber("chunkMaxTokens") ?? 512;
+const CHUNK_OVERLAP_PERCENTAGE = config.getNumber("chunkOverlapPercentage") ?? 20;
+const STACK_NAME = pulumi.getStack();
 
 export interface KnowledgeBaseArgs {
     sourceBucketArn: pulumi.Input<string>;
@@ -108,7 +110,7 @@ export class KnowledgeBase extends pulumi.ComponentResource {
         }, { parent: this });
 
         this.knowledgeBase = new aws.bedrock.AgentKnowledgeBase(`${name}-resource`, {
-            name: `${name}-kb`,
+            name: `${STACK_NAME}-${name}-kb`,
             description: "Managed knowledge base for AWS article recommendations",
             roleArn: this.role.arn,
             knowledgeBaseConfiguration: {
@@ -127,7 +129,7 @@ export class KnowledgeBase extends pulumi.ComponentResource {
 
         this.dataSource = new aws.bedrock.AgentDataSource(`${name}-data-source`, {
             knowledgeBaseId: this.knowledgeBase.id,
-            name: `${name}-s3-source`,
+            name: `${STACK_NAME}-${name}-s3-source`,
             description: "Source bucket for article knowledge documents",
             dataDeletionPolicy: "RETAIN",
             dataSourceConfiguration: {
