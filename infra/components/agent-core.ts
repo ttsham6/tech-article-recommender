@@ -219,6 +219,7 @@ export class AgentRuntime extends pulumi.ComponentResource {
         // Endpoint
         this.endpoint = new aws.bedrock.AgentcoreAgentRuntimeEndpoint(`${name}-endpoint`, {
             agentRuntimeId: this.agentRuntime.agentRuntimeId,
+            agentRuntimeVersion: this.agentRuntime.agentRuntimeVersion,
             name: ENDPOINT_NAME,
             description: "Public endpoint for the Strands recommendation runtime",
         }, { parent: this });
