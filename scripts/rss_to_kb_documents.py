@@ -103,6 +103,8 @@ def write_article(entry: feedparser.FeedParserDict, output_dir: Path, source_lab
     metadata = {
         "metadataAttributes": {
             "source": truncate_text(source_label, MAX_SOURCE_LENGTH),
+            "title": title,
+            "url": link,
             "published_date": iso_date,
             "service": truncate_text(categories[0] if categories else "", MAX_SERVICE_LENGTH),
             "source_host": urlparse(link).netloc,

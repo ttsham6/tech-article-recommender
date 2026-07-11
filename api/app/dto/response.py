@@ -1,4 +1,4 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, ConfigDict, HttpUrl
 
 
 class RecommendationItem(BaseModel):
@@ -8,4 +8,7 @@ class RecommendationItem(BaseModel):
 
 
 class RecommendationResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     items: list[RecommendationItem]
+    knowledge_base_id: str | None = None
