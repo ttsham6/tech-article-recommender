@@ -10,7 +10,10 @@ class RecommendationService:
         self.agent = StrandsRecommendationAgent()
 
     def recommend(self, payload: RecommendationRequest) -> RecommendationResponse:
-        response = self.agent.recommend(payload.preference)
+        try:
+            response = self.agent.recommend(payload.preference)
+        except Exception:
+            response = self.agent._fallback_response(payload.preference)
         return RecommendationResponse(
             items=response.items,
         )

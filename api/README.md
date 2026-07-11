@@ -33,6 +33,7 @@ uv run pytest
 ```sh
 cd api
 rm -rf build/package build/api-lambda.zip
+rm -rf build/dist build/lib tech_article_recommender_api.egg-info
 mkdir -p build/package
 uv build --wheel --out-dir build/dist
 uv pip install \
@@ -44,6 +45,8 @@ uv pip install \
 cd build/package
 zip -r ../api-lambda.zip .
 ```
+
+`build/lib` と `tech_article_recommender_api.egg-info` が残ると旧 schema が wheel に混入する。schema 変更時は必ず削除。
 
 ## Lambda upload
 
