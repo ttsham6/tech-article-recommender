@@ -19,6 +19,10 @@ inputs:
     description: "Whitespace-separated extra paths to copy into build/package"
     required: false
     default: ""
+  only-binary:
+    description: "Pass --only-binary=:all: to uv pip install"
+    required: false
+    default: "true"
 
 runs:
   using: "composite"
@@ -38,11 +42,15 @@ runs:
         rm -rf build/package build/dist "build/${{ inputs.zip-name }}"
         mkdir -p build/package
         uv build --wheel --out-dir build/dist
+        ONLY_BINARY_ARGS=""
+        if [ "${{ inputs.only-binary }}" = "true" ]; then
+          ONLY_BINARY_ARGS="--only-binary=:all:"
+        fi
         uv pip install \
           --python-platform aarch64-manylinux2014 \
           --python-version "${{ inputs.python-version }}" \
           --target build/package \
-          --only-binary=:all: \
+          $ONLY_BINARY_ARGS \
           build/dist/*.whl
 
         if [ -n "${{ inputs.extra-copy-paths }}" ]; then
