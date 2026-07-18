@@ -47,8 +47,22 @@ jobs:
           zip-name: api-lambda.zip
           artifact-name: api-lambda
 
+  batch-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Build batch project
+        uses: ./.github/actions/build-python-zip
+        with:
+          work-dir: ./batch
+          zip-name: rss-batch.zip
+          artifact-name: rss-batch
+          only-binary: "false"
+
   pulumi-aws-preview:
-    needs: [agent-build, api-build]
+    needs: [agent-build, api-build, batch-build]
     runs-on: ubuntu-latest
 
     steps:
