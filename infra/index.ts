@@ -1,5 +1,6 @@
 import { AgentRuntime } from "./components/agent-core";
 import { ApiLambda } from "./components/api-lambda";
+import { BatchLambda } from "./components/batch-lambda";
 import { DynamoDb } from "./components/dynamodb";
 import { KnowledgeBase } from "./components/knowledge-base";
 import { S3 } from "./components/s3";
@@ -17,7 +18,7 @@ const knowledgeBase = new KnowledgeBase("knowledge-base",
         vectorIndexArn: s3.kbVectorIndex.indexArn,
     });
 
-const runtime = new AgentRuntime(
+const agentCoreRuntime = new AgentRuntime(
     "runtime",
     {
         artifactPath: AGENT_ARTIFACT_PATH,
@@ -30,24 +31,20 @@ const apiLambda = new ApiLambda(
     "api",
     {
         artifactPath: API_ARTIFACT_PATH,
-        agentRuntimeArn: runtime.agentRuntime.agentRuntimeArn,
-        agentRuntimeEndpointArn: runtime.endpoint.agentRuntimeEndpointArn,
+        agentRuntimeArn: agentCoreRuntime.agentRuntime.agentRuntimeArn,
+        agentRuntimeEndpointArn: agentCoreRuntime.endpoint.agentRuntimeEndpointArn,
         agentRuntimeQualifier: "tech_article_recommender_endpoint",
         jobsTableArn: dynamoDb.jobsTable.arn,
         jobsTableName: dynamoDb.jobsTable.name,
     });
 
-export const agentRuntimeExecutionRoleArn = runtime.executionRole.arn;
-export const agentRuntimeArtifactKey = "strands-runtime.zip";
-export const agentRuntimeArn = runtime.agentRuntime.agentRuntimeArn;
-export const agentRuntimeId = runtime.agentRuntime.agentRuntimeId;
-export const agentRuntimeEndpointArn = runtime.endpoint.agentRuntimeEndpointArn;
-export const artifactBucketName = s3.artifactBucket.bucket;
-export const apiLambdaArtifactKey = "api-lambda.zip";
-export const apiLambdaFunctionName = apiLambda.function.name;
-export const apiEndpointUrl = apiLambda.api.apiEndpoint;
-export const jobsTableArn = dynamoDb.jobsTable.arn;
-export const jobsTableName = dynamoDb.jobsTable.name;
-export const knowledgeBaseArn = knowledgeBase.knowledgeBase.arn;
-export const knowledgeBaseId = knowledgeBase.knowledgeBase.id;
-export const knowledgeBaseDataSourceId = knowledgeBase.dataSource.dataSourceId;
+const batchLambda = new BatchLambda(
+    "batch",
+    {
+        kbSourceBucketArn: s3.kbSourceBucket.arn,
+        kbSourceBucketName: s3.kbSourceBucket.bucket,
+        batchScheduleExpression: "0 15 * * ? *",
+        articleCategory: "aws",
+        batchRssFeedUrl: "https://aws.amazon.com/jp/blogs/aws/feed/",
+    }
+);
