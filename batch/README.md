@@ -1,0 +1,44 @@
+# Batch
+
+## セットアップ
+
+```sh
+cd batch
+uv sync
+cp .env.sample .env
+```
+
+環境変数は `.env.sample` 参照。
+
+## ローカル実行
+
+`uv run` で Lambda handler を直接呼ぶ。
+
+```sh
+cd batch
+PYTHONPATH=.. uv run python -c 'from app.main import handler; print(handler({}, None))'
+```
+
+## Lambda build
+
+```sh
+cd batch
+rm -rf build/package build/rss-batch.zip
+mkdir -p build/package
+uv build --wheel --out-dir build/dist
+uv pip install \
+  --python-platform aarch64-manylinux2014 \
+  --python-version 3.13 \
+  --target build/package \
+  build/dist/*.whl
+cd build/package
+zip -r ../rss-batch.zip .
+```
+
+## Lambda upload
+
+`infra/dist/rss-batch.zip` へ配置。
+
+```sh
+cp build/rss-batch.zip ../infra/dist/rss-batch.zip
+```
