@@ -43,8 +43,10 @@ const batchLambda = new BatchLambda(
     {
         kbSourceBucketArn: s3.kbSourceBucket.arn,
         kbSourceBucketName: s3.kbSourceBucket.bucket,
-        batchScheduleExpression: "0 15 * * ? *",
+        knowledgeBaseId: knowledgeBase.knowledgeBase.id,
+        dataSourceId: knowledgeBase.dataSource.dataSourceId,
         articleCategory: "aws",
         batchRssFeedUrl: "https://aws.amazon.com/jp/blogs/aws/feed/",
+        batchScheduleExpression: "cron(0 15 * * ? *)",
     }
 );

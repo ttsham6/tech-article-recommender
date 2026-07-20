@@ -9,6 +9,7 @@ cp .env.sample .env
 ```
 
 環境変数は `.env.sample` 参照。
+S3 upload 後、`KNOWLEDGE_BASE_ID` と `DATA_SOURCE_ID` を使って ingestion job を開始する。
 
 ## ローカル実行
 
