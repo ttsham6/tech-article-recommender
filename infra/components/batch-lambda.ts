@@ -7,6 +7,8 @@ const ARTIFACT_PATH = "dist/rss-batch.zip";
 export interface BatchLambdaArgs {
     kbSourceBucketArn: pulumi.Input<string>;
     kbSourceBucketName: pulumi.Input<string>;
+    knowledgeBaseId: pulumi.Input<string>;
+    dataSourceId: pulumi.Input<string>;
     articleCategory: pulumi.Input<string>;
     batchRssFeedUrl: pulumi.Input<string>;
     batchScheduleExpression: pulumi.Input<string>;
@@ -65,11 +67,21 @@ export class BatchLambda extends pulumi.ComponentResource {
                                         Sid: "WriteKnowledgeBaseSourceBucket",
                                         Effect: "Allow",
                                         Action: [
+                                            "s3:ListBucket",
                                             "s3:PutObject",
                                         ],
                                         Resource: [
+                                            kbSourceBucketArn,
                                             `${kbSourceBucketArn}/*`,
                                         ],
+                                    },
+                                    {
+                                        Sid: "StartKnowledgeBaseIngestion",
+                                        Effect: "Allow",
+                                        Action: [
+                                            "bedrock:StartIngestionJob",
+                                        ],
+                                        Resource: "*",
                                     },
                                 ],
                             }),
@@ -91,6 +103,8 @@ export class BatchLambda extends pulumi.ComponentResource {
             environment: {
                 variables: {
                     KB_SOURCE_BUCKET: args.kbSourceBucketName,
+                    KNOWLEDGE_BASE_ID: args.knowledgeBaseId,
+                    DATA_SOURCE_ID: args.dataSourceId,
                     ARTICLE_CATEGORY: args.articleCategory,
                     RSS_FEED_URL: args.batchRssFeedUrl,
                 },
