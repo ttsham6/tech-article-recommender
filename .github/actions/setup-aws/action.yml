@@ -58,6 +58,13 @@ runs:
         name: api-lambda
         path: ${{ inputs.work-dir }}/dist
 
+    - name: Download Batch Artifact
+      if: ${{ inputs.download-artifacts == 'true' }}
+      uses: actions/download-artifact@v4
+      with:
+        name: rss-batch
+        path: ${{ inputs.work-dir }}/dist
+
     - name: Yarn install
       shell: bash
       working-directory: ${{ inputs.work-dir }}
