@@ -8,11 +8,14 @@ on:
       - ".github/workflows/build.yaml"
       - "agent/**"
       - "api/**"
+      - "batch/**"
+      - "frontend-web/**"
       - "infra/**"
   workflow_dispatch:
 
 permissions:
   contents: read
+  checks: write
   pull-requests: write
 
 concurrency:
@@ -81,3 +84,35 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+
+  web-build-and-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+        working-directory: ./frontend-web
+
+      - name: Build web project
+        run: yarn build
+        working-directory: ./frontend-web
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+
+      - name: Deploy preview to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: tech-article-recommender
+          entryPoint: ./frontend-web
