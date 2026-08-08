@@ -20,6 +20,8 @@ cd batch
 PYTHONPATH=.. uv run python -c 'from app.main import handler; print(handler({}, None))'
 ```
 
+RSS各記事URL は KB投入前に到達確認する。`HEAD` 実行、失敗時 `GET` fallback。`404` `410` 接続失敗 URL は除外。
+
 ## Lambda build
 
 ```sh

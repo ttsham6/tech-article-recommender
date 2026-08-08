@@ -30,8 +30,14 @@ def handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]:
     rss_path = fetch_rss(
         feed_url, rss_path, settings.request_timeout_seconds)
 
-    article_documents = rss_convertor.convert_feed_to_documents(
-        rss_path, documents_dir, article_category)
+    convert_result = rss_convertor.convert_feed_to_documents(
+        rss_path,
+        documents_dir,
+        article_category,
+        url_check_timeout_seconds=settings.request_timeout_seconds,
+    )
+
+    article_documents = convert_result.documents
 
     uploaded_obj_keys = upload_documents_to_s3(
         article_documents, settings.kb_source_bucket, article_category, date_token)
@@ -53,6 +59,7 @@ def handler(event: dict[str, Any] | None, context: Any) -> dict[str, Any]:
         "article_category": article_category,
         "bucket": settings.kb_source_bucket,
         "generated_articles": len(article_documents),
+        "skipped_invalid_urls": convert_result.skipped_invalid_urls,
         "uploaded_objects": len(uploaded_obj_keys),
         "uploaded_keys": uploaded_obj_keys,
         "deleted_objects": len(deleted_obj_keys),
@@ -76,8 +83,6 @@ def fetch_rss(feed_url: str, output_path: Path, timeout_seconds: int) -> Path:
         output_path.write_bytes(response.read())
 
     return output_path
-
-
 def upload_documents_to_s3(
     article_documents: list[rss_convertor.ArticleDocument],
     bucket_name: str,
