@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 import feedparser
 from bs4 import BeautifulSoup
@@ -25,7 +27,18 @@ class ArticleDocument:
     metadata: DocObject
 
 
-def convert_feed_to_documents(input_path: Path, output_dir: Path, source_label: str) -> list[ArticleDocument]:
+@dataclass(frozen=True)
+class ConvertFeedResult:
+    documents: list[ArticleDocument]
+    skipped_invalid_urls: int
+
+
+def convert_feed_to_documents(
+    input_path: Path,
+    output_dir: Path,
+    source_label: str,
+    url_check_timeout_seconds: int = 30,
+) -> ConvertFeedResult:
     """
     RSS を読み込み、各 entry を 1記事ずつファイルへ書き出す。
     """
@@ -34,13 +47,35 @@ def convert_feed_to_documents(input_path: Path, output_dir: Path, source_label: 
         raise ValueError(f"RSS parse failed: {feed.bozo_exception}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    return [
-        write_article(entry, output_dir, source_label, index)
-        for index, entry in enumerate(feed.entries, start=1)
-    ]
+    documents: list[ArticleDocument] = []
+    skipped_invalid_urls = 0
+
+    for index, entry in enumerate(feed.entries, start=1):
+        document = write_article(
+            entry,
+            output_dir,
+            source_label,
+            index,
+            url_check_timeout_seconds=url_check_timeout_seconds,
+        )
+        if document is None:
+            skipped_invalid_urls += 1
+            continue
+        documents.append(document)
+
+    return ConvertFeedResult(
+        documents=documents,
+        skipped_invalid_urls=skipped_invalid_urls,
+    )
 
 
-def write_article(entry: feedparser.FeedParserDict, output_dir: Path, source_label: str, index: int) -> ArticleDocument:
+def write_article(
+    entry: feedparser.FeedParserDict,
+    output_dir: Path,
+    source_label: str,
+    index: int,
+    url_check_timeout_seconds: int = 30,
+) -> ArticleDocument | None:
     """
     feedparser の 1 entry を markdown 本文と metadata sidecar に変換する。
     """
@@ -48,6 +83,13 @@ def write_article(entry: feedparser.FeedParserDict, output_dir: Path, source_lab
     article_path, iso_date = article_output_path(output_dir, pub_date, index)
     title = str(entry.get("title", "")).strip()
     link = str(entry.get("link", "")).strip()
+
+    if not is_supported_http_url(link):
+        return None
+
+    if not is_reachable_url(link, timeout_seconds=url_check_timeout_seconds):
+        return None
+
     author = str(entry.get("author", entry.get("dc_creator", ""))).strip()
     guid = str(entry.get("id", entry.get("guid", ""))).strip()
     tags = entry.get("tags") or []
@@ -96,7 +138,8 @@ def write_article(entry: feedparser.FeedParserDict, output_dir: Path, source_lab
         }
     }
 
-    metadata_path = article_path.with_name(article_path.name + ".metadata.json")
+    metadata_path = article_path.with_name(
+        article_path.name + ".metadata.json")
     article_path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
     metadata_path.write_text(
         json.dumps(metadata, ensure_ascii=False, separators=(",", ":")) + "\n",
@@ -112,6 +155,41 @@ def write_article(entry: feedparser.FeedParserDict, output_dir: Path, source_lab
             content_type="application/json; charset=utf-8",
         ),
     )
+
+
+def is_supported_http_url(url: str) -> bool:
+    parsed = urlparse(url.strip())
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def is_reachable_url(url: str, timeout_seconds: int) -> bool:
+    """
+    KB投入前に記事URL疎通確認。HEAD失敗時 GET fallback。
+    """
+    for method in ("HEAD", "GET"):
+        request = Request(
+            url,
+            method=method,
+            headers={
+                "User-Agent": "tech-article-recommender-batch/1.0",
+                "Accept": "text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8",
+            },
+        )
+        try:
+            with urlopen(request, timeout=timeout_seconds) as response:
+                status_code = getattr(response, "status", None) or response.getcode()
+                if 200 <= status_code < 400:
+                    return True
+        except HTTPError as error:
+            if error.code in {404, 410}:
+                return False
+            if method == "GET":
+                return False
+        except URLError:
+            if method == "GET":
+                return False
+
+    return False
 
 
 def article_output_path(output_dir: Path, pub_date: str, index: int) -> tuple[Path, str]:
@@ -179,9 +257,10 @@ if __name__ == "__main__":
 
     source_label = args.source_label or f"{args.input.stem}-{datetime.now(timezone.utc):%Y%m%d}"
 
-    written_files = convert_feed_to_documents(
+    result = convert_feed_to_documents(
         args.input, args.output_dir, source_label)
 
-    print(f"generated_articles={len(written_files)}")
-    for document in written_files:
+    print(f"generated_articles={len(result.documents)}")
+    print(f"skipped_invalid_urls={result.skipped_invalid_urls}")
+    for document in result.documents:
         print(document.article.path)
