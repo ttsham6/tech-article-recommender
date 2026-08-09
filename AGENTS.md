@@ -10,7 +10,7 @@
 
 ### ディレクトリ構成
 
-- `api`: 推薦ジョブ受付 API。FastAPI。非同期 worker 連携。
+- `api`: レコメンドジョブ受付 API。FastAPI。非同期 worker 連携。
 - `agent`: レコメンドAI Agent。
 - `batch`: RSS 取得結果を Knowledge Base 投入用データへ変換、ingestion 起動。
 - `frontend-web`: Web 向けフロントエンド。Vite + React + TypeScript。
