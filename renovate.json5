@@ -1,0 +1,86 @@
+{
+  // Docs: https://docs.renovatebot.com/
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  extends: ["config:recommended"],
+
+  timezone: "Asia/Tokyo",
+  dependencyDashboard: true,
+  labels: ["dependencies"],
+
+  enabledManagers: ["npm", "pep621", "uv", "github-actions"],
+
+  ignorePaths: [
+    "**/node_modules/**",
+    "**/.yarn/**",
+    "**/build/**",
+    "**/dist/**",
+  ],
+
+  packageRules: [
+    {
+      description: "Major updates require manual approval from dashboard",
+      matchUpdateTypes: ["major"],
+      dependencyDashboardApproval: true,
+    },
+    {
+      description: "Group patch updates by ecosystem",
+      matchUpdateTypes: ["patch"],
+      matchManagers: ["npm"],
+      groupName: "npm patch updates",
+    },
+    {
+      description: "Group minor updates by ecosystem",
+      matchUpdateTypes: ["minor"],
+      matchManagers: ["npm"],
+      groupName: "npm minor updates",
+    },
+    {
+      description: "Group Python updates per service",
+      matchManagers: ["pep621", "uv"],
+      matchFileNames: ["api/pyproject.toml"],
+      groupName: "api python dependencies",
+    },
+    {
+      description: "Group Python updates per service",
+      matchManagers: ["pep621", "uv"],
+      matchFileNames: ["agent/pyproject.toml", "agent/uv.lock"],
+      groupName: "agent python dependencies",
+    },
+    {
+      description: "Group Python updates per service",
+      matchManagers: ["pep621", "uv"],
+      matchFileNames: ["batch/pyproject.toml", "batch/uv.lock"],
+      groupName: "batch python dependencies",
+    },
+    {
+      description: "Group frontend-web npm dependencies",
+      matchManagers: ["npm"],
+      matchFileNames: ["frontend-web/package.json", "frontend-web/yarn.lock"],
+      groupName: "frontend-web dependencies",
+    },
+    {
+      description: "Group frontend-line npm dependencies",
+      matchManagers: ["npm"],
+      matchFileNames: ["frontend-line/package.json", "frontend-line/yarn.lock"],
+      groupName: "frontend-line dependencies",
+    },
+    {
+      description: "Group infra npm dependencies",
+      matchManagers: ["npm"],
+      matchFileNames: ["infra/package.json", "infra/yarn.lock"],
+      groupName: "infra dependencies",
+    },
+    {
+      description: "Group GitHub Actions updates",
+      matchManagers: ["github-actions"],
+      groupName: "github actions dependencies",
+    },
+    {
+      description: "Refresh lock files weekly",
+      matchUpdateTypes: ["lockFileMaintenance"],
+      groupName: "lock file maintenance",
+      schedule: ["before 6am on monday"],
+    },
+  ],
+}
