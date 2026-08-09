@@ -21,44 +21,15 @@
 
 ```mermaid
 flowchart LR
-    subgraph Client
-        FW["frontend-web"]
-        FL["frontend-line"]
-    end
-
-    subgraph Runtime
-        API["api"]
-        AG["agent"]
-        KB["Bedrock Knowledge Base"]
-        JOB["job store / worker"]
-    end
-
-    subgraph Ingestion
-        RSS["AWS RSS"]
-        BA["batch"]
-        DOC["KB投入用文書"]
-    end
-
-    INF["infra"]
-
-    FW -->|推薦要求| API
-    FL -->|推薦要求| API
-    API -->|ジョブ生成| JOB
-    API -->|agent runtime 呼び出し| AG
+    FW["frontend-web"] -->|レコメンド要求| API["api"]
+    API -->|ジョブ作成 / 状態取得| JS["job store"]
+    API -->|非同期レコメンド実行| AG["agent runtime"]
     AG -->|検索| KB
-    KB -->|記事候補| AG
-    AG -->|推薦結果| API
+    AG -->|ジョブ状態更新| JS
     API -->|状態 / 結果返却| FW
-    API -->|状態 / 結果返却| FL
 
-    RSS -->|記事取得| BA
-    BA -->|変換| DOC
-    DOC -->|ingestion| KB
-
-    INF -.配備 / 構成管理.-> API
-    INF -.配備 / 構成管理.-> AG
-    INF -.配備 / 構成管理.-> BA
-    INF -.配備 / 構成管理.-> KB
+    RSS["RSS"] -->|記事| BA["batch"]
+    BA -->|変換 / ingestion| KB
 ```
 
 
