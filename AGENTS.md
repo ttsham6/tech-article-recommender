@@ -32,6 +32,59 @@ flowchart LR
     BA -->|変換 / ingestion| KB
 ```
 
+### インフラ構成図
+
+```mermaid
+flowchart LR
+    subgraph Client
+        U["user"]
+    end
+
+    subgraph Firebase
+        FW["frontend-web"]
+    end
+
+    FL["frontend-line"]
+
+    subgraph AWS["AWS"]
+        subgraph RequestPath["リクエスト処理"]
+            APIGW["API Gateway"]
+            API["API Lambda"]
+            DDB["DynamoDB job store"]
+            EP["AgentCore Endpoint"]
+            AC["Bedrock AgentCore Runtime"]
+        end
+
+        subgraph KnowledgePath["Knowledge Base"]
+            KB["Bedrock Knowledge Base"]
+            SRC["S3 source bucket"]
+            VSTORE["S3 vector store"]
+        end
+
+        subgraph BatchPath["記事定期取り込み"]
+            EV["EventBridge schedule"]
+            BATCH["Batch Lambda"]
+        end
+    end
+
+    U --> FW
+    U --> FL
+    FW --> APIGW
+    FL --> APIGW
+    APIGW --> API
+    API --> DDB
+    API --> EP
+    EP --> AC
+    AC --> KB
+
+    KB --> SRC
+    KB --> VSTORE
+
+    EV --> BATCH
+    BATCH --> SRC
+    BATCH --> KB
+```
+
 
 ## セットアップ・コマンド
 
