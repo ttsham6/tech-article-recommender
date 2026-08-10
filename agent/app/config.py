@@ -9,7 +9,7 @@ ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 class Settings(BaseSettings):
     aws_region: str = "ap-northeast-1"
-    model_id: str = Field(default="openai.gpt-oss-20b-1:0", alias="BEDROCK_MODEL_ID")
+    model_id: str = Field(default="amazon.nova-lite-v1:0", alias="BEDROCK_MODEL_ID")
     knowledge_base_id: str = Field(default="", alias="BEDROCK_KNOWLEDGE_BASE_ID")
 
     model_config = SettingsConfigDict(

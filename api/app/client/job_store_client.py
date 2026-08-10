@@ -11,6 +11,7 @@ from app.dto.job import RecommendationJobResponse
 PENDING_TTL = timedelta(hours=1)
 SUCCEEDED_TTL = timedelta(days=1)
 FAILED_TTL = timedelta(days=3)
+FAILED_PUBLIC_MESSAGE = "レコメンド生成に失敗しました。時間をおいて再度お試しください。"
 
 
 class JobStoreClient:
@@ -98,7 +99,11 @@ class JobStoreClient:
             job_id=item["jobId"],
             status=item["status"],
             result=item.get("result"),
-            error_message=item.get("errorMessage"),
+            error_message=(
+                FAILED_PUBLIC_MESSAGE
+                if item["status"] == "failed" and item.get("errorMessage")
+                else None
+            ),
         )
 
     @staticmethod

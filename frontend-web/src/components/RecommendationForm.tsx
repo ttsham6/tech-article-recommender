@@ -27,7 +27,6 @@ export default function RecommendationForm({
       <label className="field-label" htmlFor="preference">
         知りたい技術
       </label>
-      <p className="field-note">※現在、入力は英語のみ対応しています。</p>
       <textarea
         id="preference"
         name="preference"
