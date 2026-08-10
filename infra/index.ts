@@ -5,8 +5,9 @@ import { DynamoDb } from "./components/dynamodb";
 import { KnowledgeBase } from "./components/knowledge-base";
 import { S3 } from "./components/s3";
 
-const AGENT_ARTIFACT_PATH = "dist/strands-runtime.zip";
-const API_ARTIFACT_PATH = "dist/api-lambda.zip";
+const AGENT_ARTIFACT_PATH = "../agent/build/strands-runtime.zip";
+const API_ARTIFACT_PATH = "../api/build/api-lambda.zip";
+const BATCH_ARTIFACT_PATH = "../batch/build/rss-batch.zip";
 
 const s3 = new S3("s3");
 const dynamoDb = new DynamoDb("dynamodb");
@@ -41,6 +42,7 @@ const apiLambda = new ApiLambda(
 const batchLambda = new BatchLambda(
     "batch",
     {
+        artifactPath: BATCH_ARTIFACT_PATH,
         kbSourceBucketArn: s3.kbSourceBucket.arn,
         kbSourceBucketName: s3.kbSourceBucket.bucket,
         knowledgeBaseId: knowledgeBase.knowledgeBase.id,

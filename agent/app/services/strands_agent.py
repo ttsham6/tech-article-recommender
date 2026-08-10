@@ -13,6 +13,7 @@ from app.models.recommendation import (
     RecommendationSelectionPayload,
 )
 from app.services.knowledge_base_client import KnowledgeBaseClient
+from app.services.prompt_loader import load_recommendation_prompts
 
 URL_LINE_PATTERN = re.compile(r"(?:^|[\s(])(?P<url>https?://[^\s)>\]]+)", re.MULTILINE)
 TITLE_LINE_PATTERN = re.compile(r"^#\s+(?P<title>.+)$", re.MULTILINE)
@@ -21,16 +22,12 @@ TITLE_LINE_PATTERN = re.compile(r"^#\s+(?P<title>.+)$", re.MULTILINE)
 class StrandsRecommendationAgent:
     def __init__(self) -> None:
         settings = get_settings()
+        prompts = load_recommendation_prompts()
         self.knowledge_base_client = KnowledgeBaseClient()
+        self.selection_prompt_template = prompts.selection_prompt_template
         self.agent = Agent(
             model=BedrockModel(model_id=settings.model_id),
-            system_prompt=(
-                "You select exactly 3 AWS-related technical articles from the provided candidates.\n"
-                "Prefer AWS official blog, AWS documentation, or high-signal engineering writeups.\n"
-                "Do not invent articles, titles, document IDs, or URLs.\n"
-                "Every reason must explain why the selected article matches the user preference.\n"
-                "Return only the structured output."
-            ),
+            system_prompt=prompts.system_prompt,
             structured_output_model=RecommendationSelectionPayload,
         )
 
@@ -42,7 +39,8 @@ class StrandsRecommendationAgent:
             return self._fallback_response(preference)
 
         if len(candidates) <= 3:
-            return RecommendationItemsPayload(
+            return self._merge_with_fallback_items(
+                preference=preference,
                 items=[
                     RecommendationItem(
                         title=candidate.title,
@@ -50,7 +48,7 @@ class StrandsRecommendationAgent:
                         reason=self._fallback_reason(preference, candidate.title),
                     )
                     for candidate in candidates
-                ]
+                ],
             )
 
         candidate_prompt = "\n".join(
@@ -59,11 +57,9 @@ class StrandsRecommendationAgent:
         )
         try:
             result = self.agent(
-                (
-                    "Select exactly 3 AWS-related technical articles for this user preference.\n"
-                    f"User preference: {preference}\n"
-                    "Choose only from these candidates:\n"
-                    f"{candidate_prompt}"
+                self.selection_prompt_template.format(
+                    preference=preference,
+                    candidates=candidate_prompt,
                 )
             )
         except Exception:
@@ -165,7 +161,8 @@ class StrandsRecommendationAgent:
     def _fallback_from_candidates(
         self, preference: str, candidates: list[RecommendationCandidate]
     ) -> RecommendationItemsPayload:
-        return RecommendationItemsPayload(
+        return self._merge_with_fallback_items(
+            preference=preference,
             items=[
                 RecommendationItem(
                     title=candidate.title,
@@ -173,7 +170,7 @@ class StrandsRecommendationAgent:
                     reason=self._fallback_reason(preference, candidate.title),
                 )
                 for candidate in candidates[:3]
-            ]
+            ],
         )
 
     def _fallback_response(self, preference: str) -> RecommendationItemsPayload:
@@ -233,6 +230,24 @@ class StrandsRecommendationAgent:
             ]
 
         return RecommendationItemsPayload(items=items)
+
+    def _merge_with_fallback_items(
+        self,
+        preference: str,
+        items: list[RecommendationItem],
+    ) -> RecommendationItemsPayload:
+        merged_items = list(items)
+        used_urls = {str(item.url) for item in merged_items}
+
+        for fallback_item in self._fallback_response(preference).items:
+            if len(merged_items) >= 3:
+                break
+            if str(fallback_item.url) in used_urls:
+                continue
+            merged_items.append(fallback_item)
+            used_urls.add(str(fallback_item.url))
+
+        return RecommendationItemsPayload(items=merged_items[:3])
 
     @staticmethod
     def _fallback_reason(preference: str, title: str) -> str:
