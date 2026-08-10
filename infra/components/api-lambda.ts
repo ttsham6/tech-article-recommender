@@ -1,6 +1,6 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
-import { getArtifactHash } from "./artifact";
+import { resolveArtifactPath } from "./artifact";
 
 const FUNCTION_NAME = "tech-article-recommender-api";
 
@@ -28,7 +28,7 @@ export class ApiLambda extends pulumi.ComponentResource {
 
         const region = aws.getRegionOutput({});
         const callerIdentity = aws.getCallerIdentityOutput({});
-        const artifactHash = getArtifactHash(args.artifactPath);
+        const artifactPath = resolveArtifactPath(args.artifactPath);
 
         // IAM Role
         this.role = new aws.iam.Role(`${name}-role`, {
@@ -119,8 +119,7 @@ export class ApiLambda extends pulumi.ComponentResource {
             architectures: ["arm64"],
             timeout: 180,
             memorySize: 512,
-            code: new pulumi.asset.FileArchive(args.artifactPath),
-            sourceCodeHash: artifactHash,
+            code: new pulumi.asset.FileArchive(artifactPath),
             environment: {
                 variables: {
                     AGENT_RUNTIME_ARN: args.agentRuntimeArn,
@@ -182,7 +181,6 @@ export class ApiLambda extends pulumi.ComponentResource {
 
         this.registerOutputs({
             functionName: this.function.name,
-            artifactHash,
             apiEndpoint: this.api.apiEndpoint,
         });
     }

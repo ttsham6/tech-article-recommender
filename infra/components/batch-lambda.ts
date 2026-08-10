@@ -1,6 +1,6 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
-import { getArtifactHash } from "./artifact";
+import { resolveArtifactPath } from "./artifact";
 
 const FUNCTION_NAME = "tech-article-recommender-rss-batch";
 
@@ -26,7 +26,7 @@ export class BatchLambda extends pulumi.ComponentResource {
 
         const region = aws.getRegionOutput({});
         const callerIdentity = aws.getCallerIdentityOutput({});
-        const artifactHash = getArtifactHash(args.artifactPath);
+        const artifactPath = resolveArtifactPath(args.artifactPath);
 
         const role = new aws.iam.Role("batch-role", {
             assumeRolePolicy: JSON.stringify({
@@ -101,8 +101,7 @@ export class BatchLambda extends pulumi.ComponentResource {
             architectures: ["arm64"],
             timeout: 180,
             memorySize: 512,
-            code: new pulumi.asset.FileArchive(args.artifactPath),
-            sourceCodeHash: artifactHash,
+            code: new pulumi.asset.FileArchive(artifactPath),
             environment: {
                 variables: {
                     KB_SOURCE_BUCKET: args.kbSourceBucketName,
