@@ -16,7 +16,7 @@ export default function RecommendationResults({ result, openWindow }: Recommenda
   if (items.length === 0) {
     return (
       <div className="empty-state">
-        <p>まだ結果なし。</p>
+        <p>{result?.message ?? "まだ結果はありません。"}</p>
       </div>
     );
   }
@@ -29,7 +29,7 @@ export default function RecommendationResults({ result, openWindow }: Recommenda
           <p className="article-reason">{item.reason}</p>
           <div className="article-actions">
             <p className="job-id">
-              {item.normalizedUrl ? getRecommendationUrlLabel(item.normalizedUrl) : "URL 無効"}
+              {item.normalizedUrl ? getRecommendationUrlLabel(item.normalizedUrl) : "URL が無効です"}
             </p>
             <button
               className="article-link"
@@ -37,7 +37,7 @@ export default function RecommendationResults({ result, openWindow }: Recommenda
               disabled={!item.normalizedUrl}
               onClick={() => item.normalizedUrl && openWindow(item.normalizedUrl)}
             >
-              {item.normalizedUrl ? "記事開く" : "URL 修正必要"}
+              {item.normalizedUrl ? "記事を開く" : "URL を確認してください"}
             </button>
           </div>
         </li>

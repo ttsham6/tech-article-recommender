@@ -13,7 +13,7 @@ export default function App() {
       <header className="hero">
         <h1>Tech Article Recommender</h1>
         <p className="hero-copy">
-          興味のある技術領域を入力すると、おすすめ記事を3件ご案内します。
+          興味のある技術領域を入力すると、AWSの記事をご案内します。
         </p>
       </header>
 
