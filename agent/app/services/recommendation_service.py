@@ -13,7 +13,8 @@ class RecommendationService:
         try:
             response = self.agent.recommend(payload.preference)
         except Exception:
-            response = self.agent._fallback_response(payload.preference)
+            response = self.agent._no_results_response(payload.preference)
         return RecommendationResponse(
             items=response.items,
+            message=response.message,
         )

@@ -10,6 +10,7 @@ uv sync
 ## build 手順
 
 ```sh
+cd agent
 rm -rf build/package build/strands-runtime.zip
 mkdir -p build/package
 uv build --wheel --out-dir build/dist
@@ -43,4 +44,14 @@ aws bedrock-agentcore invoke-agent-runtime \
   --accept application/json \
   --payload "$PAYLOAD_B64" \
   ./response.json
+```
+
+## deploy メモ
+
+AgentCore Runtime artifact key は `strands-runtime.zip` の sha256 先頭12桁から自動生成。
+zip 内容が変わったときだけ S3 key も変わる。
+
+```sh
+cd infra
+pulumi up
 ```

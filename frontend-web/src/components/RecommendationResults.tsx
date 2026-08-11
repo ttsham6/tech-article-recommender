@@ -15,7 +15,7 @@ export default function RecommendationResults({ result }: RecommendationResultsP
   if (items.length === 0) {
     return (
       <div className="empty-state">
-        <p>まだ結果はありません。</p>
+        <p>{result?.message ?? "まだ結果はありません。"}</p>
       </div>
     );
   }

@@ -202,6 +202,10 @@ cd infra && yarn pulumi preview
 - モノレポなので対象外 package の差分は触らない
 - README と実装ズレ発見時は、可能なら同一変更で追随
 - RSS各記事URL は KB投入前に到達確認。`HEAD` 失敗時 `GET` fallback。`404` `410` 接続失敗 URL は除外
+- KB metadata 契約: `metadataAttributes.source` `metadataAttributes.doc_id` `metadataAttributes.url` 必須。`url` は `http/https` のみ
+- KB metadata 契約: `metadataAttributes.title` 推奨。欠損時 agent 側本文 fallback 許容
+- KB metadata 契約: `summary` は metadata 未保持。agent 側本文 `## Summary` から抽出
+- agent 側は `source` `doc_id` `url` 欠損結果を除外
 - `frontend-line` は LIFF 前提。`VITE_LIFF_ID` `VITE_API_BASE_URL` `VITE_POLL_INTERVAL_MS` `VITE_POLL_TIMEOUT_MS` 管理
 - API 認証は `Authorization: Bearer ...` 形式前提。LINE フロントは LIFF ID token 優先、無ければ access token
 - `scripts/rss_to_kb_documents.py` 出力は `1記事1ファイル`。metadata は短い filterable 属性のみ、本文は `.md` 側

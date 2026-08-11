@@ -19,7 +19,7 @@ export interface RecommendationController extends RecommendationViewState {
 const initialViewState: RecommendationViewState = {
   jobId: null,
   status: "idle",
-  message: "入力後 送信。",
+  message: "内容を入力して送信してください。",
   result: null,
 };
 
@@ -37,7 +37,7 @@ export function useRecommendationJob(token: string | null): RecommendationContro
     setViewState({
       jobId: null,
       status: "pending",
-      message: "ジョブ作成中。",
+      message: "リクエストを作成しています。",
       result: null,
     });
 
@@ -47,7 +47,7 @@ export function useRecommendationJob(token: string | null): RecommendationContro
       setViewState({
         jobId: accepted.job_id,
         status: accepted.status,
-        message: "記事探索開始。結果待機。",
+        message: "記事の探索を開始しました。結果をお待ちください。",
         result: null,
       });
       void poll(accepted.job_id);
@@ -67,13 +67,13 @@ export function useRecommendationJob(token: string | null): RecommendationContro
       const job = await fetchRecommendationJob({ jobId, token });
 
       if (job.status === "pending") {
-        setPollingState(jobId, "pending", "記事探索待機中。");
+        setPollingState(jobId, "pending", "記事探索の開始をお待ちください。");
         scheduleNext(jobId);
         return;
       }
 
       if (job.status === "running") {
-        setPollingState(jobId, "running", "記事探索実行中。");
+        setPollingState(jobId, "running", "記事を探索しています。");
         scheduleNext(jobId);
         return;
       }
@@ -84,7 +84,7 @@ export function useRecommendationJob(token: string | null): RecommendationContro
         setViewState({
           jobId,
           status: "failed",
-          message: job.error_message || "ジョブ失敗。",
+          message: job.error_message || "処理に失敗しました。",
           result: null,
         });
         return;
@@ -115,10 +115,13 @@ export function useRecommendationJob(token: string | null): RecommendationContro
   function finishSucceeded(jobId: string, job: RecommendationJobResponse): void {
     clearPolling(timerRef);
     setIsSubmitting(false);
+    const itemCount = job.result?.items.length ?? 0;
     setViewState({
       jobId,
       status: "succeeded",
-      message: "記事取得完了。",
+      message:
+        job.result?.message ||
+        (itemCount > 0 ? `おすすめ記事を${itemCount}件取得しました。` : "一致する記事は見つかりませんでした。"),
       result: job.result,
     });
   }
@@ -130,7 +133,7 @@ export function useRecommendationJob(token: string | null): RecommendationContro
       setViewState({
         jobId,
         status: "failed",
-        message: "タイムアウト。少し待って再取得。",
+        message: "時間をおいて、もう一度お試しください。",
         result: null,
       });
       return;
@@ -159,5 +162,5 @@ function normalizeError(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-  return "不明エラー";
+  return "不明なエラーが発生しました。";
 }

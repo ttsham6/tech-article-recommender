@@ -21,6 +21,7 @@ PYTHONPATH=.. uv run python -c 'from app.main import handler; print(handler({}, 
 ```
 
 RSS各記事URL は KB投入前に到達確認する。`HEAD` 実行、失敗時 `GET` fallback。`404` `410` 接続失敗 URL は除外。
+metadata 契約は `source` `doc_id` `url` 必須。`url` は `http/https` 必須。不正 metadata は投入前に除外。
 
 ## Lambda build
 

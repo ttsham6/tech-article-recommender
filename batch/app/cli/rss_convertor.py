@@ -31,6 +31,7 @@ class ArticleDocument:
 class ConvertFeedResult:
     documents: list[ArticleDocument]
     skipped_invalid_urls: int
+    skipped_invalid_metadata: int
 
 
 def convert_feed_to_documents(
@@ -49,9 +50,10 @@ def convert_feed_to_documents(
     output_dir.mkdir(parents=True, exist_ok=True)
     documents: list[ArticleDocument] = []
     skipped_invalid_urls = 0
+    skipped_invalid_metadata = 0
 
     for index, entry in enumerate(feed.entries, start=1):
-        document = write_article(
+        document, skip_reason = write_article(
             entry,
             output_dir,
             source_label,
@@ -59,13 +61,17 @@ def convert_feed_to_documents(
             url_check_timeout_seconds=url_check_timeout_seconds,
         )
         if document is None:
-            skipped_invalid_urls += 1
+            if skip_reason == "invalid_url":
+                skipped_invalid_urls += 1
+            else:
+                skipped_invalid_metadata += 1
             continue
         documents.append(document)
 
     return ConvertFeedResult(
         documents=documents,
         skipped_invalid_urls=skipped_invalid_urls,
+        skipped_invalid_metadata=skipped_invalid_metadata,
     )
 
 
@@ -75,7 +81,7 @@ def write_article(
     source_label: str,
     index: int,
     url_check_timeout_seconds: int = 30,
-) -> ArticleDocument | None:
+) -> tuple[ArticleDocument | None, str | None]:
     """
     feedparser の 1 entry を markdown 本文と metadata sidecar に変換する。
     """
@@ -85,10 +91,10 @@ def write_article(
     link = str(entry.get("link", "")).strip()
 
     if not is_supported_http_url(link):
-        return None
+        return None, "invalid_url"
 
     if not is_reachable_url(link, timeout_seconds=url_check_timeout_seconds):
-        return None
+        return None, "invalid_url"
 
     author = str(entry.get("author", entry.get("dc_creator", ""))).strip()
     guid = str(entry.get("id", entry.get("guid", ""))).strip()
@@ -126,16 +132,20 @@ def write_article(
     if content:
         lines.extend(["", "## Content", "", content])
 
+    metadata_attributes = {
+        "source": source_label,
+        "title": title,
+        "url": link,
+        "published_date": iso_date,
+        "service": categories[0] if categories else "",
+        "source_host": urlparse(link).netloc,
+        "doc_id": hashlib.sha1(f"{title}\n{link}".encode("utf-8")).hexdigest()[:16],
+    }
+    if not validate_metadata_attributes(metadata_attributes):
+        return None, "invalid_metadata"
+
     metadata = {
-        "metadataAttributes": {
-            "source": source_label,
-            "title": title,
-            "url": link,
-            "published_date": iso_date,
-            "service": categories[0] if categories else "",
-            "source_host": urlparse(link).netloc,
-            "doc_id": hashlib.sha1(f"{title}\n{link}".encode("utf-8")).hexdigest()[:16],
-        }
+        "metadataAttributes": metadata_attributes
     }
 
     metadata_path = article_path.with_name(
@@ -154,7 +164,14 @@ def write_article(
             path=metadata_path,
             content_type="application/json; charset=utf-8",
         ),
-    )
+    ), None
+
+
+def validate_metadata_attributes(metadata_attributes: dict[str, str]) -> bool:
+    required_keys = ("source", "doc_id", "url")
+    if not all(metadata_attributes.get(key, "").strip() for key in required_keys):
+        return False
+    return is_supported_http_url(metadata_attributes["url"])
 
 
 def is_supported_http_url(url: str) -> bool:
@@ -262,5 +279,6 @@ if __name__ == "__main__":
 
     print(f"generated_articles={len(result.documents)}")
     print(f"skipped_invalid_urls={result.skipped_invalid_urls}")
+    print(f"skipped_invalid_metadata={result.skipped_invalid_metadata}")
     for document in result.documents:
         print(document.article.path)

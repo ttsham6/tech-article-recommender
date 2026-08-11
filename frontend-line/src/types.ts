@@ -6,6 +6,7 @@ export interface RecommendationItem {
 
 export interface RecommendationResult {
   items: RecommendationItem[];
+  message: string | null;
 }
 
 export type RecommendationJobStatus = "pending" | "running" | "succeeded" | "failed";

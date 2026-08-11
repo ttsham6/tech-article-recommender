@@ -15,8 +15,12 @@ from app.models.recommendation import (
 from app.services.knowledge_base_client import KnowledgeBaseClient
 from app.services.prompt_loader import load_recommendation_prompts
 
-URL_LINE_PATTERN = re.compile(r"(?:^|[\s(])(?P<url>https?://[^\s)>\]]+)", re.MULTILINE)
 TITLE_LINE_PATTERN = re.compile(r"^#\s+(?P<title>.+)$", re.MULTILINE)
+SUMMARY_SECTION_PATTERN = re.compile(
+    r"^##\s+Summary\s*(?P<summary>.*?)(?:\n##\s+|\Z)",
+    re.MULTILINE | re.DOTALL,
+)
+MAX_RECOMMENDATIONS = 5
 
 
 class StrandsRecommendationAgent:
@@ -33,26 +37,13 @@ class StrandsRecommendationAgent:
 
     def recommend(self, preference: str) -> RecommendationItemsPayload:
         retrieval = self.knowledge_base_client.retrieve(
-            query=preference, number_of_results=12)
+            query=preference, number_of_results=20)
         candidates = self._build_candidates(retrieval.get("results", []))
         if not candidates:
-            return self._fallback_response(preference)
-
-        if len(candidates) <= 3:
-            return self._merge_with_fallback_items(
-                preference=preference,
-                items=[
-                    RecommendationItem(
-                        title=candidate.title,
-                        url=candidate.url,
-                        reason=self._fallback_reason(preference, candidate.title),
-                    )
-                    for candidate in candidates
-                ],
-            )
+            return self._no_results_response(preference)
 
         candidate_prompt = "\n".join(
-            f"- doc_id: {candidate.doc_id}\n  title: {candidate.title}\n  url: {candidate.url}"
+            self._format_candidate_prompt(candidate)
             for candidate in candidates
         )
         try:
@@ -67,7 +58,8 @@ class StrandsRecommendationAgent:
 
         try:
             if result.structured_output is None:
-                raise ValueError("Strands agent did not return structured output")
+                raise ValueError(
+                    "Strands agent did not return structured output")
 
             if isinstance(result.structured_output, RecommendationSelectionPayload):
                 selection = result.structured_output
@@ -93,9 +85,11 @@ class StrandsRecommendationAgent:
                     reason=picked.reason,
                 )
             )
+            if len(items) >= MAX_RECOMMENDATIONS:
+                break
 
         for candidate in candidates:
-            if len(items) >= 3:
+            if len(items) >= MAX_RECOMMENDATIONS:
                 break
             if candidate.doc_id in used_doc_ids:
                 continue
@@ -107,19 +101,20 @@ class StrandsRecommendationAgent:
                 )
             )
 
-        return RecommendationItemsPayload(items=items[:3])
+        return RecommendationItemsPayload(items=items[:MAX_RECOMMENDATIONS])
 
     def _build_candidates(self, results: list[dict[str, Any]]) -> list[RecommendationCandidate]:
         candidates_by_doc_id: dict[str, RecommendationCandidate] = {}
         for result in results:
             metadata = result.get("metadata") or {}
             text = result.get("text", "")
+            if not self._is_rss_candidate(metadata):
+                continue
 
             doc_id = self._first_non_empty(metadata.get("doc_id"))
             title = self._first_non_empty(
                 metadata.get("title"), self._extract_title(text))
-            url = self._first_non_empty(
-                metadata.get("url"), self._extract_url(text))
+            url = self._first_non_empty(metadata.get("url"))
 
             if not doc_id or not title or not url or doc_id in candidates_by_doc_id:
                 continue
@@ -128,16 +123,17 @@ class StrandsRecommendationAgent:
                 doc_id=doc_id,
                 title=title,
                 url=cast(HttpUrl, url),
+                summary=self._extract_summary(text),
             )
 
         return list(candidates_by_doc_id.values())
 
     @staticmethod
-    def _extract_url(text: str) -> str | None:
-        match = URL_LINE_PATTERN.search(text)
-        if not match:
-            return None
-        return match.group("url").strip().rstrip(".,);]")
+    def _is_rss_candidate(metadata: dict[str, Any]) -> bool:
+        return all(
+            isinstance(metadata.get(key), str) and metadata.get(key).strip()
+            for key in ("source", "doc_id", "url")
+        )
 
     @staticmethod
     def _extract_title(text: str) -> str | None:
@@ -152,103 +148,53 @@ class StrandsRecommendationAgent:
         return None
 
     @staticmethod
+    def _extract_summary(text: str) -> str | None:
+        match = SUMMARY_SECTION_PATTERN.search(text)
+        if not match:
+            return None
+        summary = re.sub(r"\s+", " ", match.group("summary")).strip()
+        if not summary:
+            return None
+        return summary[:400]
+
+    @staticmethod
     def _first_non_empty(*values: Any) -> str | None:
         for value in values:
             if isinstance(value, str) and value.strip():
                 return value.strip()
         return None
 
+    @staticmethod
+    def _format_candidate_prompt(candidate: RecommendationCandidate) -> str:
+        lines = [
+            f"- doc_id: {candidate.doc_id}",
+            f"  title: {candidate.title}",
+            f"  url: {candidate.url}",
+        ]
+        if candidate.summary:
+            lines.append(f"  summary: {candidate.summary}")
+        return "\n".join(lines)
+
     def _fallback_from_candidates(
         self, preference: str, candidates: list[RecommendationCandidate]
     ) -> RecommendationItemsPayload:
-        return self._merge_with_fallback_items(
-            preference=preference,
+        return RecommendationItemsPayload(
             items=[
                 RecommendationItem(
                     title=candidate.title,
                     url=candidate.url,
                     reason=self._fallback_reason(preference, candidate.title),
                 )
-                for candidate in candidates[:3]
+                for candidate in candidates[:MAX_RECOMMENDATIONS]
             ],
         )
 
-    def _fallback_response(self, preference: str) -> RecommendationItemsPayload:
-        if "lambda" in preference.lower():
-            items = [
-                RecommendationItem(
-                    title="AWS Lambda Developer Guide",
-                    url=cast(HttpUrl, "https://docs.aws.amazon.com/lambda/latest/dg/welcome.html"),
-                    reason=self._fallback_reason(preference, "AWS Lambda Developer Guide"),
-                ),
-                RecommendationItem(
-                    title="AWS Lambda Best Practices",
-                    url=cast(HttpUrl, "https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html"),
-                    reason=self._fallback_reason(preference, "AWS Lambda Best Practices"),
-                ),
-                RecommendationItem(
-                    title="AWS Architecture Center",
-                    url=cast(HttpUrl, "https://aws.amazon.com/architecture/"),
-                    reason=self._fallback_reason(preference, "AWS Architecture Center"),
-                ),
-            ]
-        elif "bedrock" in preference.lower() or "agent" in preference.lower():
-            items = [
-                RecommendationItem(
-                    title="Amazon Bedrock User Guide",
-                    url=cast(HttpUrl, "https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html"),
-                    reason=self._fallback_reason(preference, "Amazon Bedrock User Guide"),
-                ),
-                RecommendationItem(
-                    title="Amazon Bedrock Agents",
-                    url=cast(HttpUrl, "https://docs.aws.amazon.com/bedrock/latest/userguide/agents.html"),
-                    reason=self._fallback_reason(preference, "Amazon Bedrock Agents"),
-                ),
-                RecommendationItem(
-                    title="AWS Architecture Center",
-                    url=cast(HttpUrl, "https://aws.amazon.com/architecture/"),
-                    reason=self._fallback_reason(preference, "AWS Architecture Center"),
-                ),
-            ]
-        else:
-            items = [
-                RecommendationItem(
-                    title="AWS Architecture Center",
-                    url=cast(HttpUrl, "https://aws.amazon.com/architecture/"),
-                    reason=self._fallback_reason(preference, "AWS Architecture Center"),
-                ),
-                RecommendationItem(
-                    title="AWS Well-Architected Framework",
-                    url=cast(HttpUrl, "https://docs.aws.amazon.com/wellarchitected/latest/framework/welcome.html"),
-                    reason=self._fallback_reason(preference, "AWS Well-Architected Framework"),
-                ),
-                RecommendationItem(
-                    title="Amazon Bedrock User Guide",
-                    url=cast(HttpUrl, "https://docs.aws.amazon.com/bedrock/latest/userguide/what-is-bedrock.html"),
-                    reason=self._fallback_reason(preference, "Amazon Bedrock User Guide"),
-                ),
-            ]
-
-        return RecommendationItemsPayload(items=items)
-
-    def _merge_with_fallback_items(
-        self,
-        preference: str,
-        items: list[RecommendationItem],
-    ) -> RecommendationItemsPayload:
-        merged_items = list(items)
-        used_urls = {str(item.url) for item in merged_items}
-
-        for fallback_item in self._fallback_response(preference).items:
-            if len(merged_items) >= 3:
-                break
-            if str(fallback_item.url) in used_urls:
-                continue
-            merged_items.append(fallback_item)
-            used_urls.add(str(fallback_item.url))
-
-        return RecommendationItemsPayload(items=merged_items[:3])
+    def _no_results_response(self, preference: str) -> RecommendationItemsPayload:
+        return RecommendationItemsPayload(
+            items=[],
+            message="AWSの記事では一致する記事が見つかりませんでした。検索語を変えて再度お試しください。",
+        )
 
     @staticmethod
     def _fallback_reason(preference: str, title: str) -> str:
-        return f"'{preference}' に近い AWS 技術情報として安定参照しやすい記事: {title}"
+        return f"「{preference}」との関連性が高いRSS記事として「{title}」を選定。"

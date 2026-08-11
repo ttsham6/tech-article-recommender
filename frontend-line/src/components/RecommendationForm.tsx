@@ -25,16 +25,16 @@ export default function RecommendationForm({ disabled, onSubmit }: Recommendatio
       <textarea
         id="preference"
         name="preference"
-        maxLength={500}
+        maxLength={200}
         rows={6}
-        placeholder="例: Bedrock AgentCore の設計パターン。実装例 多め。"
+        placeholder="例: Amazon Bedrock の最新機能を知りたい。導入や活用例が分かる記事を読みたい。"
         required
         value={preference}
         onChange={(event) => setPreference(event.target.value)}
       />
       <div className="field-meta">
-        <span>最大 500 文字</span>
-        <span>{preference.length} / 500</span>
+        <span>最大 200 文字</span>
+        <span>{preference.length} / 200</span>
       </div>
       <button className="primary-button" type="submit" disabled={disabled}>
         {disabled ? "取得中" : "おすすめ取得"}

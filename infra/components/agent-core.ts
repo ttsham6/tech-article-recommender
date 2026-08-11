@@ -1,9 +1,10 @@
+import { createHash } from "crypto";
+import { readFileSync } from "fs";
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import { resolveArtifactPath } from "./artifact";
 
 const RUNTIME_NAME = "TechArticleRecommender";
-const ARTIFACT_KEY = "strands-runtime.zip";
 const MODEL_ID = "amazon.nova-lite-v1:0";
 const ENDPOINT_NAME = "tech_article_recommender_endpoint";
 
@@ -29,6 +30,11 @@ export class AgentRuntime extends pulumi.ComponentResource {
         const region = aws.getRegionOutput({});
         const callerIdentity = aws.getCallerIdentityOutput({});
         const artifactPath = resolveArtifactPath(args.artifactPath);
+        const artifactHash = createHash("sha256")
+            .update(readFileSync(artifactPath))
+            .digest("hex")
+            .slice(0, 12);
+        const artifactKey = `strands-runtime-${artifactHash}.zip`;
 
         // IAM role
         this.executionRole = new aws.iam.Role(`${name}-execution-role`, {
@@ -186,7 +192,7 @@ export class AgentRuntime extends pulumi.ComponentResource {
 
         const artifact = new aws.s3.BucketObject(`${name}-artifact`, {
             bucket: args.sourceBucketName,
-            key: ARTIFACT_KEY,
+            key: artifactKey,
             source: new pulumi.asset.FileAsset(artifactPath),
             contentType: "application/zip",
         }, { parent: this });
@@ -230,7 +236,7 @@ export class AgentRuntime extends pulumi.ComponentResource {
         this.registerOutputs({
             executionRoleArn: this.executionRole.arn,
             runtimeName: RUNTIME_NAME,
-            artifactKey: ARTIFACT_KEY,
+            artifactKey,
             agentRuntimeArn: this.agentRuntime.agentRuntimeArn,
             agentRuntimeId: this.agentRuntime.agentRuntimeId,
             endpointArn: this.endpoint.agentRuntimeEndpointArn,

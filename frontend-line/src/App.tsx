@@ -17,7 +17,7 @@ export default function App() {
       <header className="hero">
         <p className="eyebrow">LINE Mini App</p>
         <h1>Tech Article Recommender</h1>
-        <p className="hero-copy">興味を書く。おすすめ記事3件 返す。</p>
+        <p className="hero-copy">興味のある技術領域を入力すると、AWSの記事をご案内します。</p>
         <ProfileCard profile={liffState.profile} />
       </header>
 
@@ -46,7 +46,7 @@ export default function App() {
           <div className="panel-head">
             <h2>おすすめ記事</h2>
             <span className={`status-chip ${resultItems.length > 0 ? "is-succeeded" : "is-idle"}`}>
-              {resultItems.length > 0 ? `${resultItems.length}件` : "結果なし"}
+              {resultItems.length > 0 ? `${resultItems.length}件` : "結果はありません"}
             </span>
           </div>
           {shouldShowResultMessage ? <p className="message">{recommendation.message}</p> : null}

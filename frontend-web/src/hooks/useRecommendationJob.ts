@@ -115,10 +115,13 @@ export function useRecommendationJob(): RecommendationController {
   function finishSucceeded(jobId: string, job: RecommendationJobResponse): void {
     clearPolling(timerRef);
     setIsSubmitting(false);
+    const itemCount = job.result?.items.length ?? 0;
     setViewState({
       jobId,
       status: "succeeded",
-      message: "おすすめ記事を取得しました。",
+      message:
+        job.result?.message ||
+        (itemCount > 0 ? `おすすめ記事を${itemCount}件取得しました。` : "一致する記事は見つかりませんでした。"),
       result: job.result,
     });
   }
