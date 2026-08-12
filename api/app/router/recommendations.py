@@ -23,24 +23,17 @@ async def recommend(
     request: RecommendationRequest,
     _: None = Depends(verify_authorization),
 ) -> RecommendationJobAcceptedResponse:
-    settings = get_settings()
     job_id = str(uuid.uuid4())
     request_payload = request.model_dump(mode="json")
 
+    # job 保存
     job_store_client = JobStoreClient()
     job_store_client.create_job(job_id=job_id, request_payload=request_payload)
 
     try:
-        boto3.client("lambda", region_name=settings.aws_region).invoke(
-            FunctionName=settings.async_worker_function_name,
-            InvocationType="Event",
-            Payload=json.dumps(
-                {
-                    "jobType": "recommendation",
-                    "jobId": job_id,
-                    "request": request_payload,
-                }
-            ).encode("utf-8"),
+        invoke_self_async_recommendation_worker(
+            job_id=job_id,
+            request_payload=request_payload,
         )
     except (BotoCoreError, ClientError) as exc:
         job_store_client.mark_failed(job_id, str(exc))
@@ -65,3 +58,23 @@ async def get_recommendation_job(
             detail="Recommendation job not found",
         )
     return job
+
+
+def invoke_self_async_recommendation_worker(
+    job_id: str,
+    request_payload: dict,
+) -> None:
+    """
+    自身の Lambda 関数を非同期で呼び出して、レコメンドジョブを処理する
+    """
+    settings = get_settings()
+    worker_event = {
+        "jobType": "recommendation",
+        "jobId": job_id,
+        "request": request_payload,
+    }
+    boto3.client("lambda", region_name=settings.aws_region).invoke(
+        FunctionName=settings.self_async_worker_function_name,
+        InvocationType="Event",
+        Payload=json.dumps(worker_event).encode("utf-8"),
+    )
