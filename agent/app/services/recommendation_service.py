@@ -1,8 +1,5 @@
-from app.models.recommendation import (
-    RecommendationRequest,
-    RecommendationResponse,
-)
-from app.services.strands_agent import StrandsRecommendationAgent
+from app.models.recommendation import RecommendationRequest, RecommendationResponse
+from app.strands_agent import StrandsRecommendationAgent
 
 
 class RecommendationService:

@@ -10,7 +10,8 @@ class KnowledgeBaseClient:
         self.settings = get_settings()
         if not self.settings.knowledge_base_id:
             raise ValueError("BEDROCK_KNOWLEDGE_BASE_ID is not set")
-        self.client = boto3.client("bedrock-agent-runtime", region_name=self.settings.aws_region)
+        self.client = boto3.client(
+            "bedrock-agent-runtime", region_name=self.settings.aws_region)
 
     def retrieve(self, query: str, number_of_results: int = 8) -> dict[str, Any]:
         response = self.client.retrieve(
