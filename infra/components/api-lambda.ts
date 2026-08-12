@@ -125,7 +125,7 @@ export class ApiLambda extends pulumi.ComponentResource {
                     AGENT_RUNTIME_ARN: args.agentRuntimeArn,
                     AGENT_RUNTIME_QUALIFIER: args.agentRuntimeQualifier,
                     JOBS_TABLE_NAME: args.jobsTableName,
-                    ASYNC_WORKER_FUNCTION_NAME: FUNCTION_NAME,
+                    SELF_ASYNC_WORKER_FUNCTION_NAME: FUNCTION_NAME,
                 },
             },
         }, { parent: this });

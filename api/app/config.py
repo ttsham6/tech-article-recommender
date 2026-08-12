@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     agent_runtime_arn: str = Field(default="", alias="AGENT_RUNTIME_ARN")
     agent_runtime_qualifier: str = Field(default="tech_article_recommender_endpoint", alias="AGENT_RUNTIME_QUALIFIER")
     jobs_table_name: str = Field(default="", alias="JOBS_TABLE_NAME")
-    async_worker_function_name: str = Field(default="", alias="ASYNC_WORKER_FUNCTION_NAME")
+    self_async_worker_function_name: str = Field(default="", alias="SELF_ASYNC_WORKER_FUNCTION_NAME")
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,

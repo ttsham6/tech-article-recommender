@@ -15,6 +15,10 @@ FAILED_PUBLIC_MESSAGE = "レコメンド生成に失敗しました。時間を�
 
 
 class JobStoreClient:
+    """
+    Agent Runtime のジョブを管理するDynamoDB クライアント
+    """
+
     def __init__(self) -> None:
         self.settings = get_settings()
 
