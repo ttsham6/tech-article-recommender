@@ -187,6 +187,7 @@ def to_bedrock_metadata_attributes(metadata_attributes: dict[str, str]) -> dict[
             }
         }
         for key, value in metadata_attributes.items()
+        if value.strip()
     }
 
 
