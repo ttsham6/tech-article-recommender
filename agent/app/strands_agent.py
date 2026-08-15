@@ -37,7 +37,7 @@ class StrandsRecommendationAgent:
 
         selection = self._select_recommendations(preference, candidates)
         if selection is None:
-            return self._fallback_from_candidates(preference, candidates)
+            return self._no_results_response(preference)
 
         return self._assemble_recommendation_items(preference, candidates, selection)
 
@@ -111,41 +111,13 @@ class StrandsRecommendationAgent:
             if len(items) >= MAX_RECOMMENDATIONS:
                 break
 
-        for candidate in candidates:
-            if len(items) >= MAX_RECOMMENDATIONS:
-                break
-            if candidate.doc_id in used_doc_ids:
-                continue
-            items.append(
-                RecommendationItem(
-                    title=candidate.title,
-                    url=candidate.url,
-                    reason=self._fallback_reason(preference, candidate.title),
-                )
-            )
+        if not items:
+            return self._no_results_response(preference)
 
         return RecommendationItemsPayload(items=items[:MAX_RECOMMENDATIONS])
-
-    def _fallback_from_candidates(
-        self, preference: str, candidates: list[RecommendationCandidate]
-    ) -> RecommendationItemsPayload:
-        return RecommendationItemsPayload(
-            items=[
-                RecommendationItem(
-                    title=candidate.title,
-                    url=candidate.url,
-                    reason=self._fallback_reason(preference, candidate.title),
-                )
-                for candidate in candidates[:MAX_RECOMMENDATIONS]
-            ],
-        )
 
     def _no_results_response(self, preference: str) -> RecommendationItemsPayload:
         return RecommendationItemsPayload(
             items=[],
             message="AWSの記事では一致する記事が見つかりませんでした。検索語を変えて再度お試しください。",
         )
-
-    @staticmethod
-    def _fallback_reason(preference: str, title: str) -> str:
-        return f"「{preference}」との関連性が高いRSS記事として「{title}」を選定。"
