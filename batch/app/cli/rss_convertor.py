@@ -145,7 +145,7 @@ def write_article(
         return None, "invalid_metadata"
 
     metadata = {
-        "metadataAttributes": metadata_attributes
+        "metadataAttributes": to_bedrock_metadata_attributes(metadata_attributes)
     }
 
     metadata_path = article_path.with_name(
@@ -174,6 +174,22 @@ def validate_metadata_attributes(metadata_attributes: dict[str, str]) -> bool:
     return is_supported_http_url(metadata_attributes["url"])
 
 
+def to_bedrock_metadata_attributes(metadata_attributes: dict[str, str]) -> dict[str, dict[str, dict[str, str]]]:
+    """
+    S3 metadataAttributes 形式に変換する。
+    ref: https://docs.aws.amazon.com/bedrock/latest/userguide/kb-managed-ds-s3.html#kb-managed-config-s3
+    """
+    return {
+        key: {
+            "value": {
+                "type": "STRING",
+                "stringValue": value,
+            }
+        }
+        for key, value in metadata_attributes.items()
+    }
+
+
 def is_supported_http_url(url: str) -> bool:
     parsed = urlparse(url.strip())
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
@@ -194,7 +210,8 @@ def is_reachable_url(url: str, timeout_seconds: int) -> bool:
         )
         try:
             with urlopen(request, timeout=timeout_seconds) as response:
-                status_code = getattr(response, "status", None) or response.getcode()
+                status_code = getattr(response, "status",
+                                      None) or response.getcode()
                 if 200 <= status_code < 400:
                     return True
         except HTTPError as error:
