@@ -30,4 +30,8 @@ def format_candidate_prompt(candidate: RecommendationCandidate) -> str:
     ]
     if candidate.summary:
         lines.append(f"  summary: {candidate.summary}")
+    if candidate.exclusion_tags:
+        lines.append(
+            f"  exclusion_tags: {', '.join(candidate.exclusion_tags)}"
+        )
     return "\n".join(lines)

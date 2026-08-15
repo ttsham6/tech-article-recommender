@@ -3,6 +3,7 @@ from strands.models import BedrockModel
 
 from app.client.knowledge_base_client import KnowledgeBaseClient
 from app.config import get_settings
+from app.exclusion_rules import apply_exclusion_tags
 from app.models.recommendation import (
     RecommendationCandidate,
     RecommendationItem,
@@ -43,8 +44,9 @@ class StrandsRecommendationAgent:
 
     def _find_candidates(self, preference: str) -> list[RecommendationCandidate]:
         retrieval = self.knowledge_base_client.retrieve(
-            query=preference, number_of_results=20)
-        return build_candidates(retrieval.get("results", []))
+            query=preference, number_of_results=40)
+        candidates = build_candidates(retrieval.get("results", []))
+        return apply_exclusion_tags(candidates)
 
     def _select_recommendations(
         self, preference: str, candidates: list[RecommendationCandidate]

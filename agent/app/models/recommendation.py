@@ -22,6 +22,7 @@ class RecommendationCandidate(BaseModel):
     title: str = Field(..., min_length=1)
     url: HttpUrl
     summary: str | None = None
+    exclusion_tags: list[str] = Field(default_factory=list)
 
 
 class RecommendationSelectionItem(BaseModel):
