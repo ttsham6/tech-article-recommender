@@ -10,7 +10,8 @@ export default function App() {
   const recommendation = useRecommendationJob(liffState.token);
   const canSubmit = isApiConfigured() && (liffState.phase === "ready" || liffState.phase === "unconfigured");
   const resultItems = recommendation.result?.items ?? [];
-  const shouldShowResultMessage = recommendation.status !== "idle";
+  const shouldShowResultMessage =
+    recommendation.status !== "idle" && (recommendation.result === null || resultItems.length > 0);
 
   return (
     <div className="app-shell">
