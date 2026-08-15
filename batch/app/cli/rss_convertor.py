@@ -145,7 +145,7 @@ def write_article(
         return None, "invalid_metadata"
 
     metadata = {
-        "metadataAttributes": metadata_attributes
+        "metadataAttributes": to_bedrock_metadata_attributes(metadata_attributes)
     }
 
     metadata_path = article_path.with_name(
@@ -172,6 +172,18 @@ def validate_metadata_attributes(metadata_attributes: dict[str, str]) -> bool:
     if not all(metadata_attributes.get(key, "").strip() for key in required_keys):
         return False
     return is_supported_http_url(metadata_attributes["url"])
+
+
+def to_bedrock_metadata_attributes(metadata_attributes: dict[str, str]) -> dict[str, dict[str, dict[str, str]]]:
+    return {
+        key: {
+            "value": {
+                "type": "STRING",
+                "stringValue": value,
+            }
+        }
+        for key, value in metadata_attributes.items()
+    }
 
 
 def is_supported_http_url(url: str) -> bool:
