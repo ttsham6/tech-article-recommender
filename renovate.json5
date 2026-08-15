@@ -6,6 +6,7 @@
 
   timezone: "Asia/Tokyo",
   dependencyDashboard: true,
+  dependencyDashboardTitle: "Renovate Dependency Dashboard",
   labels: ["dependencies"],
 
   enabledManagers: ["npm", "pep621", "github-actions"],
