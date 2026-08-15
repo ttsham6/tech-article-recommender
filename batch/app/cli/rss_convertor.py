@@ -175,6 +175,10 @@ def validate_metadata_attributes(metadata_attributes: dict[str, str]) -> bool:
 
 
 def to_bedrock_metadata_attributes(metadata_attributes: dict[str, str]) -> dict[str, dict[str, dict[str, str]]]:
+    """
+    S3 metadataAttributes 形式に変換する。
+    ref: https://docs.aws.amazon.com/bedrock/latest/userguide/kb-managed-ds-s3.html#kb-managed-config-s3
+    """
     return {
         key: {
             "value": {
@@ -206,7 +210,8 @@ def is_reachable_url(url: str, timeout_seconds: int) -> bool:
         )
         try:
             with urlopen(request, timeout=timeout_seconds) as response:
-                status_code = getattr(response, "status", None) or response.getcode()
+                status_code = getattr(response, "status",
+                                      None) or response.getcode()
                 if 200 <= status_code < 400:
                     return True
         except HTTPError as error:
