@@ -22,9 +22,9 @@ runs:
   using: "composite"
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
-        node-version: "22"
+        node-version: "24"
         cache: yarn
         cache-dependency-path: ${{ inputs.work-dir }}/yarn.lock
 
@@ -46,21 +46,21 @@ runs:
 
     - name: Download AI Agent artifact
       if: ${{ inputs.download-artifacts == 'true' }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: strands-runtime
         path: ${{ inputs.work-dir }}/dist
 
     - name: Download API Artifact
       if: ${{ inputs.download-artifacts == 'true' }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: api-lambda
         path: ${{ inputs.work-dir }}/dist
 
     - name: Download Batch Artifact
       if: ${{ inputs.download-artifacts == 'true' }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: rss-batch
         path: ${{ inputs.work-dir }}/dist
@@ -71,7 +71,7 @@ runs:
       run: yarn install --immutable
 
     - name: Run Pulumi command
-      uses: pulumi/actions@v3
+      uses: pulumi/actions@v7
       with:
         command: ${{ inputs.command }}
         stack-name: ${{ inputs.stack-name }}
