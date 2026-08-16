@@ -11,9 +11,15 @@ def build_service_filter(preference: str) -> dict[str, Any] | None:
 
 
 def build_service_equals_filter(service_names: list[str]) -> dict[str, Any]:
+    filter_values = list(dict.fromkeys(
+        value
+        for service_name in service_names
+        for value in (service_name, service_name.lower())
+        if value.strip()
+    ))
     filters = [
         {"equals": {"key": "service", "value": service_name}}
-        for service_name in service_names
+        for service_name in filter_values
     ]
     if len(filters) == 1:
         return filters[0]
