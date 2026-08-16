@@ -2,14 +2,13 @@ import argparse
 import json
 
 from app.models.recommendation import RecommendationRequest
-from app.services.recommendation_service import RecommendationService
+from app.runtime import recommend
 
 
 def main() -> None:
     args = build_parser().parse_args()
     payload = RecommendationRequest(preference=args.preference)
-    service = RecommendationService()
-    response = service.recommend(payload)
+    response = recommend(payload)
     print(json.dumps(response.model_dump(mode="json"), ensure_ascii=False, indent=2))
 
 
