@@ -15,8 +15,9 @@ MAX_RECOMMENDATIONS = 5
 SYSTEM_PROMPT = """
 あなたは AWS 技術記事の推薦エージェント。
 RSSフィード由来の記事を最大5件選ぶ。
+候補取得には必ず `search_aws_articles` tool を使う。
 候補が5件未満なら、ある分だけ返す。
-入力で与えられた候補以外の記事、タイトル、doc_id、URLを作らない。
+tool が返していない記事、タイトル、doc_id、URLを作らない。
 選定では次の優先順位を守る。
 1. ユーザー嗜好に含まれる主要トピック、AWSサービス名、機能名、ユースケースに直接対応する記事を最優先する。
 2. title や summary に具体サービス名、機能名、実装観点、設計観点、ベストプラクティスが明示される記事を優先する。
@@ -33,17 +34,16 @@ SELECTION_PROMPT_TEMPLATE = """
 次のユーザー嗜好に対して、RSSフィード由来の記事を最大5件選んでください。
 
 ユーザー嗜好: {preference}
-候補記事(JSON): {candidate_payloads}
 
 選定手順:
-1. 候補記事(JSON) だけを見て選ぶ。
-2. ユーザー嗜好と直接一致する AWS サービス名、機能名、課題、ユースケースを確認する。
+1. 最初に `search_aws_articles` tool を使い、`preference` にユーザー嗜好をそのまま渡して候補を取得する。
+2. tool が返した候補について、ユーザー嗜好と直接一致する AWS サービス名、機能名、課題、ユースケースを確認する。
 3. summary から具体性を確認する。実装、設計、検証、改善、導入、運用の知見がある候補を優先する。
 4. `exclusion_tags` が付いた候補は原則選ばない。具体記事が不足し、なおかつユーザー嗜好への適合が明確に高い場合だけ例外的に選ぶ。
 5. 直接一致する具体記事があるなら、総まとめ記事で枠を使わない。
 6. 適合度が低い候補は選ばない。最大5件であり、5件必須ではない。
 
-各 reason では、候補記事(JSON) の title や summary に含まれる具体要素を使って説明してください。
+各 reason では、tool が返した候補の title や summary に含まれる具体要素を使って説明してください。
 reason には、どの AWS サービス名、機能名、課題、ユースケースが一致したかを必ず含めてください。
 """.strip()
 
@@ -54,35 +54,30 @@ class StrandsRecommendationAgent:
         self.agent = Agent(
             model=BedrockModel(model_id=settings.model_id),
             system_prompt=SYSTEM_PROMPT,
+            tools=[search_aws_articles],
             structured_output_model=RecommendationSelectionPayload,
         )
 
     def recommend(self, preference: str) -> RecommendationItemsPayload:
-        candidates = self._find_candidates(preference)
-        if not candidates:
+        selection = self._select_recommendations(preference)
+        if selection is None:
             return self._no_results_response(preference)
 
-        selection = self._select_recommendations(preference, candidates)
-        if selection is None:
+        candidates = self._find_candidates(preference)
+        if not candidates:
             return self._no_results_response(preference)
 
         return self._assemble_recommendation_items(preference, candidates, selection)
 
     def _select_recommendations(
-        self,
-        preference: str,
-        candidates: list[RecommendationCandidate],
+        self, preference: str
     ) -> RecommendationSelectionPayload | None:
         """
-        候補記事をもとにユーザーの好みに合う記事を選定する。
+        ユーザーの好みに基づいて、候補記事を取得し選定する。
         """
         result = self.agent(
             SELECTION_PROMPT_TEMPLATE.format(
                 preference=preference,
-                candidate_payloads=[
-                    candidate.model_dump(mode="json")
-                    for candidate in candidates
-                ],
             )
         )
 
