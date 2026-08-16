@@ -2,8 +2,6 @@ import re
 from functools import lru_cache
 from typing import Any
 
-from strands import tool
-
 from app.client.knowledge_base_client import KnowledgeBaseClient
 from app.config.exclusion_rules import EXCLUSION_PATTERNS
 from app.models.recommendation import RecommendationCandidate
@@ -16,7 +14,6 @@ def get_knowledge_base_client() -> KnowledgeBaseClient:
     return KnowledgeBaseClient()
 
 
-@tool(name="search_aws_articles")
 def search_aws_articles(
     preference: str,
     number_of_results: int = 40,
