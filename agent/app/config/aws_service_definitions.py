@@ -36,6 +36,15 @@ AWS_SERVICE_DEFINITIONS = {
         "Amazon EKS",
         "Amazon Elastic Kubernetes Service",
     ],
+    "fargate": [
+        "Fargate",
+        "AWS Fargate",
+    ],
+    "ecr": [
+        "ECR",
+        "Amazon ECR",
+        "Amazon Elastic Container Registry",
+    ],
     "ec2": [
         "EC2",
         "Amazon EC2",
@@ -58,7 +67,30 @@ AWS_SERVICE_DEFINITIONS = {
     ],
 }
 
+AWS_TOPIC_DEFINITIONS = {
+    "containers": {
+        "keywords": [
+            "container",
+            "containers",
+            "container service",
+            "container services",
+            "docker",
+            "kubernetes",
+            "k8s",
+            "コンテナ",
+            "コンテナサービス",
+            "コンテナ技術",
+            "コンテナ実行",
+            "コンテナ運用",
+            "kubernetes運用",
+            "オーケストレーション",
+        ],
+        "service_keys": ["ecs", "eks", "fargate", "ecr"],
+    },
+}
+
 ServicePatternSet = tuple[list[str], list[re.Pattern[str]]]
+TopicPatternSet = tuple[str, list[str], list[re.Pattern[str]]]
 
 
 def compile_service_name_pattern(service_name: str) -> re.Pattern[str]:
@@ -88,4 +120,23 @@ COMPILED_AWS_SERVICE_PATTERNS: list[ServicePatternSet] = [
         if isinstance(names, list)
     )
     if service_names
+]
+
+COMPILED_AWS_TOPIC_PATTERNS: list[TopicPatternSet] = [
+    (
+        topic_name,
+        list(dict.fromkeys(
+            service_name
+            for service_key in definition.get("service_keys", [])
+            for service_name in AWS_SERVICE_DEFINITIONS.get(service_key, [])
+            if isinstance(service_name, str) and service_name.strip()
+        )),
+        [
+            compile_service_name_pattern(keyword)
+            for keyword in definition.get("keywords", [])
+            if isinstance(keyword, str) and keyword.strip()
+        ],
+    )
+    for topic_name, definition in AWS_TOPIC_DEFINITIONS.items()
+    if isinstance(definition, dict)
 ]
