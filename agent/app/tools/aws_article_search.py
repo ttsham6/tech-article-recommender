@@ -2,13 +2,11 @@ import re
 from functools import lru_cache
 from typing import Any
 
-from strands import tool
-
 from app.client.knowledge_base_client import KnowledgeBaseClient
 from app.config.exclusion_rules import EXCLUSION_PATTERNS
 from app.models.recommendation import RecommendationCandidate
 from app.parsers.recommendation_candidate_parser import build_candidates
-from app.resolvers.aws_service_filter_resolver import build_service_filter
+from app.resolvers.aws_service_filter_resolver import resolve_article_search_context
 
 
 @lru_cache
@@ -16,7 +14,6 @@ def get_knowledge_base_client() -> KnowledgeBaseClient:
     return KnowledgeBaseClient()
 
 
-@tool(name="search_aws_articles")
 def search_aws_articles(
     preference: str,
     number_of_results: int = 40,
@@ -28,11 +25,11 @@ def search_aws_articles(
         preference: User preference or search query.
         number_of_results: Maximum number of retrieval results.
     """
-    retrieval_filter = build_service_filter(preference)
+    search_context = resolve_article_search_context(preference)
     retrieval = get_knowledge_base_client().retrieve(
-        query=preference,
+        query=search_context.query,
         number_of_results=number_of_results,
-        retrieval_filter=retrieval_filter,
+        retrieval_filter=search_context.retrieval_filter,
     )
     candidates = build_article_candidates(retrieval.get("results", []))
     return [candidate.model_dump(mode="json") for candidate in candidates]
